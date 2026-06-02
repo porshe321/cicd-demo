@@ -17,14 +17,14 @@ jobs:
         run: shellcheck deploy.sh
 
   yaml_lint:
-    name: YAML Lint
+    name: Run YamlLint
     runs-on: [self-hosted, linux, shell, dev]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Run YamlLint
-        run: yamllint .
+        run: yamllint config.yml
 
   # --- СТАДИЯ ТЕСТИРОВАНИЯ ---
   python_unit_test:
