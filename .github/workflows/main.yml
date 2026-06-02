@@ -1,0 +1,29 @@
+name: CI-CD Demo Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  system_info:
+    name: System Info
+    runs-on: [self-hosted, linux, shell, dev]
+    steps:
+      - name: Display Hostname
+        run: hostname
+
+      - name: Display Current User
+        run: whoami
+
+      - name: Display Docker Version
+        run: docker --version
+
+  simple_test:
+    name: Simple Test
+    needs: system_info
+    runs-on: [self-hosted, linux, shell, dev]
+    steps:
+      - name: Create and Read Artifact
+        run: |
+          echo "Hello CI" > artifact.txt
+          cat artifact.txt
