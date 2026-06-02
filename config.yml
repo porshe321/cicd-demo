@@ -1,0 +1,6 @@
+---
+version: "1.0"
+environment: "development"
+app_settings:
+  debug: true
+  port: 8080

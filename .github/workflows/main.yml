@@ -1,29 +1,40 @@
-name: CI-CD Demo Pipeline
+name: CI-CD Static Analysis and Testing
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  system_info:
-    name: System Info
+  # --- СТАДИЯ ЛИНТИНГА ---
+  bash_lint:
+    name: Bash Lint (ShellCheck)
     runs-on: [self-hosted, linux, shell, dev]
     steps:
-      - name: Display Hostname
-        run: hostname
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Display Current User
-        run: whoami
+      - name: Run ShellCheck
+        run: shellcheck deploy.sh
 
-      - name: Display Docker Version
-        run: docker --version
-
-  simple_test:
-    name: Simple Test
-    needs: system_info
+  yaml_lint:
+    name: YAML Lint
     runs-on: [self-hosted, linux, shell, dev]
     steps:
-      - name: Create and Read Artifact
-        run: |
-          echo "Hello CI" > artifact.txt
-          cat artifact.txt
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run YamlLint
+        run: yamllint .
+
+  # --- СТАДИЯ ТЕСТИРОВАНИЯ ---
+  python_unit_test:
+    name: Python Unit Test
+    needs: [bash_lint, yaml_lint] # Запустится только если ОБА линтера прошли успешно
+    runs-on: [self-hosted, linux, shell, dev]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run PyTest
+        run: pytest test_app.py
+
