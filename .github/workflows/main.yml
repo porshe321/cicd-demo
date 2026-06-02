@@ -1,18 +1,17 @@
-name: CI-CD Static Analysis and Testing
+name: CI-CD Static Analysis, Testing and Docker Build
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  # --- СТАДИЯ ЛИНТИНГА ---
+  # --- СТАДИЯ 1: ЛИНТИНГ ---
   bash_lint:
     name: Bash Lint (ShellCheck)
     runs-on: [self-hosted, linux, shell, dev]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
       - name: Run ShellCheck
         run: shellcheck deploy.sh
 
@@ -22,19 +21,43 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
       - name: Run YamlLint
         run: yamllint config.yml
 
-  # --- СТАДИЯ ТЕСТИРОВАНИЯ ---
+  # --- СТАДИЯ 2: ТЕСТИРОВАНИЕ ---
   python_unit_test:
     name: Run PyTest
-    needs: [bash_lint, yaml_lint] # Запустится только если ОБА линтера прошли успешно
+    needs: [bash_lint, yaml_lint]
+    runs-on: [self-hosted, linux, shell, dev]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Run PyTest
+        run: python3 -m pytest test_app.py
+
+  # --- СТАДИЯ 3: СБОРКА И ПУШ (НОВАЯ) ---
+  docker_build:
+    name: Docker Build and Push
+    needs: python_unit_test # Запустится строго после успешных тестов
     runs-on: [self-hosted, linux, shell, dev]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run PyTest
-        run: python3 -m pytest test_app.py
+      - name: Log in to GitHub Container Registry
+        # Используем встроенный автоматический токен GitHub Actions
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and Push Docker Image
+        run: |
+          # Переводим имя пользователя в нижний регистр для соответствия стандартам Docker-тегов
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/cicd-demo"
+          IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          
+          # Сборка образа с двумя тегами: 'latest' и уникальным ID пайплайна (номер рана)
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${{ github.run_number }} .
+          
+          # Пуш обоих тегов в реестр пакетов GitHub
+          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:${{ github.run_number }}
 
