@@ -3,6 +3,9 @@ name: CI-CD Static Analysis, Testing and Docker Build
 on:
   push:
     branches: [ main ]
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   # --- СТАДИЯ 1: ЛИНТИНГ ---
