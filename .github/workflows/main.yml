@@ -77,8 +77,8 @@ jobs:
             
             sudo docker stop my-python-app || true
             sudo docker rm my-python-app || true
-            sudo docker pull \$IMAGE_NAME:latest
-            sudo docker run -d --name my-python-app -p 80:3010 \$IMAGE_NAME:latest
+            sudo docker pull $IMAGE_NAME:latest
+            sudo docker run -d --name my-python-app -p 80:3010 $IMAGE_NAME:latest
           EOF
           
           # 3. Удаляем временный ключ для безопасности
