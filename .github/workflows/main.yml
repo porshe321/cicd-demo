@@ -67,6 +67,7 @@ jobs:
           host: ${{ secrets.TARGET_HOST }}
           username: ${{ secrets.TARGET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          disable_host_key_checking: true
           envs: GITHUB_ACTOR, GITHUB_TOKEN
           script: |
             IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/cicd-demo"
