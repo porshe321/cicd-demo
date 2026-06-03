@@ -61,21 +61,25 @@ jobs:
     needs: docker_build
     runs-on: [self-hosted, linux, shell, dev]
     steps:
-      - name: Executing remote SSH commands to deploy
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.TARGET_HOST }}
-          username: ${{ secrets.TARGET_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          disable_host_key_checking: true
-          envs: GITHUB_ACTOR, GITHUB_TOKEN
-          script: |
-            IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/cicd-demo"
-            IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
-            
-            echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            sudo docker stop my-python-app || true
-            sudo docker rm my-python-app || true
-            sudo docker pull $IMAGE_NAME:latest
-            sudo docker run -d --name my-python-app -p 80:3010 $IMAGE_NAME:latest
+      - name: Deploy via native SSH
+        run: |
+          # 1. Записываем приватный ключ из секретов во временный файл и даем ему права
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa
+          chmod 400 id_rsa
+          
+          # 2. Переводим имя репозитория в нижний регистр для Docker
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/cicd-demo"
+          IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          
+          # 3. Подключаемся по SSH одной командой и выполняем ТЗ без сторонних плагинов
+          ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.TARGET_USER }}@${{ secrets.TARGET_HOST }} "
+            echo '${{ secrets.GITHUB_TOKEN }}' | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin &&
+            sudo docker stop my-python-app || true &&
+            sudo docker rm my-python-app || true &&
+            sudo docker pull \$IMAGE_NAME:latest &&
+            sudo docker run -d --name my-python-app -p 80:3010 \$IMAGE_NAME:latest
+          "
+          
+          # 4. Удаляем временный ключ для безопасности
+          rm -f id_rsa
+
